@@ -24,6 +24,16 @@ let buttonClickHandler = (event) => {
         return;
     }
 
+    if (value === 'C') {
+        number1 = '';
+        number2 = '';
+        operation = '';
+        lastOperation = '';
+        result = '';
+        displayResult(result);
+        return;
+    }
+
     if (isNaN(value) === true && value !== ',' && value !== '+/-') {
         // Если происходит операция
         operation = value;
@@ -41,12 +51,6 @@ let buttonClickHandler = (event) => {
             if (number2 === '') {
                 number2 = '0';
             }
-        }
-
-        if (operation === 'C') {
-            result = '';
-            displayResult(result);
-            return;
         }
 
         if (operations.includes(operation) === true && number2 !== '') {
@@ -84,13 +88,13 @@ let buttonClickHandler = (event) => {
 
             number1 = result;
             number2 = '';
+            lastOperation = operation;
 
             if (operation !== '=') {
                 result = number1 + operation;
+            } else {
+                operation = '';
             }
-
-            lastOperation = operation;
-            operation = '';
         } else {
             if (operation !== '') {
                 result = number1;
@@ -140,6 +144,14 @@ let buttonClickHandler = (event) => {
         } else {
             // Если ввели обычное число
             numeral = value;
+
+            console.log(
+                'number1: ' + number1,
+                'number2: ' + number2,
+                'value: ' + value,
+                'operatio: ' + operation,
+                'lastOperation: ' + lastOperation
+            );
 
             if (operation === '') {
                 if (number1 === '0') {
