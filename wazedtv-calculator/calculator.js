@@ -145,14 +145,6 @@ let buttonClickHandler = (event) => {
             // Если ввели обычное число
             numeral = value;
 
-            console.log(
-                'number1: ' + number1,
-                'number2: ' + number2,
-                'value: ' + value,
-                'operatio: ' + operation,
-                'lastOperation: ' + lastOperation
-            );
-
             if (operation === '') {
                 if (number1 === '0') {
                     number1 = numeral;
