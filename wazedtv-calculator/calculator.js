@@ -1,172 +1,246 @@
 "use strict";
 
-let calc = document.getElementById('calc');
-let buttons = Array.from(calc.getElementsByClassName('button'));
-let resultEl = calc.getElementsByClassName('result')[0];
+/**
+ * Переменной "wazedTvCalculator" присваивается функция "init()", которая возвращается из анонимной функции,
+ * вызываемой на месте. Пример такого вызова:
+ *    function() { some_code;  return someFunctionVar; }()
+ * где скобки в конце сразу же вызывает эту анонимную функцию.
+ *
+ * Стрелочная функция используется для сокрытия переменных калькулятора из глобальной области видимости.
+ */
+let wazedTvCalculator = function() {
+    let calculatorEl;
+    let resultEl;
+    let buttonEls;
 
-let number1 = '';
-let number2 = '';
-let operation = '';
-let lastOperation = '';
-let operations = ['÷', '×', '+', '-', '='];
-let result = '';
+    let operations = ['÷', '×', '+', '-'];
 
-let displayResult = (result) => {
-    resultEl.innerHTML = result
-}
+    /**
+     * В массиве "operands" хранятся операнды.
+     *
+     * Под индексом "1" первый операнд.
+     * Под индексом "2" второй операнд.
+     *
+     * @type {Object} operands
+     */
+    let operands = ['', ''];
 
-let buttonClickHandler = (event) => {
-    let button = event.target;
-    let value = button.innerText;
-    let numeral;
+    let command = '';
+    let operation = '';
 
-    if (value == '') {
-        return;
+    let defaultOutput = 'Результат';
+
+    /**
+     * Функция инициадизирует переменные, хранящих ссылку на объекты html элементов и добавляет обработчик события
+     * на кнопки калькулятора.
+     *
+     * @param {String} elementId
+     */
+    function init(elementId) {
+        // Получение ссылок на объекты html-элементов
+        calculatorEl = document.getElementById(elementId);
+        resultEl = calculatorEl.getElementsByClassName('result')[0];
+        buttonEls = Array.from(calculatorEl.getElementsByClassName('button'));
+
+        // Назначаем каждой кнопке обработчик "buttonClickHandler()" на событие "click"
+        buttonEls.forEach((button) => {
+            button.addEventListener('click', buttonClickHandler);
+        });
+
+        display();
     }
 
-    if (value === 'C') {
-        number1 = '';
-        number2 = '';
-        operation = '';
-        lastOperation = '';
-        result = '';
-        displayResult(result);
-        return;
+    /**
+     * Обрабатывает событие клика по любой кнопке калькулятора
+     *
+     * @param {Event} event
+     */
+    function buttonClickHandler(event) {
+        let button = event.target;
+        let value = button.innerText;
+
+        processInput(value);
     }
 
-    if (isNaN(value) === true && value !== ',' && value !== '+/-') {
-        // Если происходит операция
-        operation = value;
+    /**
+     * Обрабатывает значение, полученное после нажатия любой кнопки калькулятора
+     *
+     * @param {String} value
+     */
+    function processInput(value) {
+        if (value === '') return;
 
-        if (number1 === '' && number2 === '') {
+        if (isNaN(value) === true && value !== ',' && value !== '+/-') {
+            /**
+             * Если "value" не число
+             * И "value" не является набором запятом или сменой знака, то это команда
+             */
+            doCommandByInput(value);
+        } else {
+            /**
+             * Если "value" не является операцией, значит производится набор операнда
+             */
+            processOperandFromInput(value);
+        }
+    }
+
+    /**
+     * Обрабатывает команду калькулятора
+     *
+     * @param {String} value
+     */
+    function doCommandByInput(value) {
+        command = value;
+
+        if (command === 'C') {
+            // Если нажали кнопку сброса "С"
+            reset();
+            display();
             return;
         }
 
-        if (operation === '=') {
-            if (lastOperation === '=') {
-                number2 = '';
+        if (operands[0] === '' && operands[1] === '') {
+            // Если операндов нет, то ничего не делаем
+            return;
+        }
+
+        if (isOperation(command) && (operation === '' || operands[1] === '')) {
+            operation = command;
+        }
+
+        if ((isOperation(command) || command === '=') && operands[1] !== '') {
+            let result;
+
+            try {
+                result = doOperation();
+            } catch (exception) {
+                reset();
+                display(exception.message);
                 return;
             }
 
-            if (number2 === '') {
-                number2 = '0';
-            }
-        }
+            operands[0] = result + '';
+            operands[1] = '';
 
-        if (operations.includes(operation) === true && number2 !== '') {
-            let currentOperation;
-
-            number1 = parseFloat(number1);
-            number2 = parseFloat(number2);
-
-            if (operation === '=') {
-                currentOperation = lastOperation;
-            } else if (lastOperation !== '') {
-                currentOperation = lastOperation;
-            } else {
-                currentOperation = operation;
-            }
-
-            switch (currentOperation) {
-                case '÷': // деление
-                    if (number2 === 0) {
-                        result = 'ЖОПА, ТЫ ЧЁ?';
-                    } else {
-                        result = number1 / number2;
-                    }
-                    break;
-                case '×': // умножение
-                    result = number1 * number2;
-                    break;
-                case '+':
-                    result = number1 + number2;
-                    break;
-                case '-':
-                    result = number1 - number2;
-                    break;
-            }
-
-            number1 = result;
-            number2 = '';
-            lastOperation = operation;
-
-            if (operation !== '=') {
-                result = number1 + operation;
-            } else {
+            if (command === '=') {
                 operation = '';
-            }
-        } else {
-            if (operation !== '') {
-                result = number1;
-            }
-
-            operation = value;
-            result += operation;
-
-            lastOperation = operation;
-        }
-    } else {
-        // Если идёт набор числа
-        if (value === ',') {
-            // Если ввели плавающую точку
-            if (operation === '') {
-                number1 += '.';
-            } else {
-                number2 += '.';
-            }
-
-            result += '.';
-        } else if (value === '+/-') {
-            // Если меняем знак числа
-            if (operation === '' || number2 === '') {
-                if (number1 === '') {
-                    return;
-                }
-
-                number1 = (parseFloat(number1) * -1) + '';
-
-                result = number1;
-                if (lastOperation !== '' && lastOperation !== '=') {
-                    result += lastOperation;
-                }
-            } else {
-                if (number2 === '') {
-                    return;
-                }
-
-                number2 = (parseFloat(number2) * -1) + '';
-
-                result += number2;
-                if (lastOperation !== '' && lastOperation !== '=') {
-                    result = number1 + lastOperation + number2;
-                }
-            }
-        } else {
-            // Если ввели обычное число
-            numeral = value;
-
-            if (operation === '') {
-                if (number1 === '0') {
-                    number1 = numeral;
-                } else {
-                    number1 += numeral;
-                }
-
-                result = number1;
-            } else {
-                if (number2 === '0') {
-                    number2 = numeral;
-                } else {
-                    number2 += numeral;
-                }
-                result = number1 + lastOperation + number2;
+            } else if (isOperation(command)) {
+                operation = command;
             }
         }
+
+        display();
     }
 
-    displayResult(result);
-}
+    /**
+     * Обрабатывает ввод для создания операнда
+     *
+     * @param {String} value
+     */
+    function processOperandFromInput(value) {
+        let operandIndex = (operands[1] === '' && operation === '') ? 0 : 1;
 
-buttons.forEach((button) => {
-    button.addEventListener('click', buttonClickHandler);
-});
+        if (isNaN(value) === false) {
+            // Если ввели обычное число
+            if (operands[operandIndex] === '0') {
+                operands[operandIndex] = value;
+            } else {
+                operands[operandIndex] += value;
+            }
+        } else if (value === ',') {
+            if (operands[operandIndex].includes('.')) {
+                return;
+            }
+
+            if (operandIndex === 1 && operands[operandIndex] === '') {
+                operands[operandIndex] = "0";
+            }
+
+            operands[operandIndex] += '.';
+        } else if (value === '+/-') {
+            if (operands[operandIndex] === '' || operands[operandIndex] === '0') {
+                return;
+            }
+
+            operands[operandIndex] = (parseFloat(operands[operandIndex]) * -1) + '';
+        }
+
+        display();
+    }
+
+    /**
+     * Обрабатывает операцию над числами
+     *
+     * @return Number
+     */
+    function doOperation() {
+        let operand1 = parseFloat(operands[0]);
+        let operand2 = parseFloat(operands[1]);
+        let result;
+
+        switch (operation) {
+            case '÷': // деление
+                if (operand2 === 0) {
+                    throw new Error('ЖОПА, ТЫ ЧЁ?');
+                }
+
+                result = operand1 / operand2;
+                break;
+            case '×': // умножение
+                result = operand1 * operand2;
+                break;
+            case '+':
+                result = operand1 + operand2;
+                break;
+            case '-':
+                result = operand1 - operand2;
+                break;
+        }
+
+        return result;
+    }
+
+    /**
+     * Проверяет, является ли аргумент операцией
+     *
+     * @param {String} operation
+     * @returns {boolean}
+     */
+    function isOperation(operation) {
+        return operations.includes(operation);
+    }
+
+    function reset() {
+        operands = ['', ''];
+        command = '';
+        operation = '';
+    }
+
+    /**
+     *
+     * @param {String|Number} output
+     */
+    function display(output = '') {
+        if (output === '') {
+            if (operands[0] !== '') {
+                output += operands[0];
+            }
+
+            if (operation !== '') {
+                output += operation;
+            }
+
+            if (operands[1] !== '') {
+                output += operands[1];
+            }
+        }
+
+        if (output === '') {
+            output = defaultOutput;
+        }
+
+        resultEl.innerHTML = output;
+    }
+
+    return init;
+}();
