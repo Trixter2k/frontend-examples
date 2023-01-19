@@ -8,7 +8,7 @@
  *
  * Стрелочная функция используется для сокрытия переменных калькулятора из глобальной области видимости.
  */
-let wazedTvCalculator = function() {
+let wazedTvCalculator = function(elementId) {
     let calculatorEl;
     let resultEl;
     let buttonEls;
@@ -237,5 +237,5 @@ let wazedTvCalculator = function() {
         return operands[0] + operation + operands[1] || defaultOutput;
     }
 
-    return init;
-}();
+    init(elementId);
+};
