@@ -86,7 +86,7 @@ let wazedTvCalculator = function(elementId) {
         let button = event.target; // получаем объект, вызваший событие, т.е. кнопку
         let value = button.innerText; // получаем значение кнопки
 
-        processInput(value); // обрабатываем ввод полученного значения
+        processInputValue(value); // обрабатываем ввод полученного значения
     }
 
     /**
@@ -94,7 +94,7 @@ let wazedTvCalculator = function(elementId) {
      *
      * @param {String} value
      */
-    function processInput(value) {
+    function processInputValue(value) {
         if (value === '') return; // если значения ввода нет, то ничего не делаем
 
         if (isNaN(value) === true && value !== ',' && value !== '+/-') {
@@ -102,12 +102,12 @@ let wazedTvCalculator = function(elementId) {
              * Если "value" не число
              * И "value" не является набором запятом или сменой знака, то это команда
              */
-            doCommandByInput(value);
+            processCommand(value);
         } else {
             /**
              * Если "value" не является операцией, значит производится набор операнда
              */
-            processOperandFromInput(value);
+            processOperand(value);
         }
     }
 
@@ -116,7 +116,7 @@ let wazedTvCalculator = function(elementId) {
      *
      * @param {String} value
      */
-    function doCommandByInput(value) {
+    function processCommand(value) {
         command = value;
 
         if (command === 'C') {
@@ -173,7 +173,7 @@ let wazedTvCalculator = function(elementId) {
      *
      * @param {String} value
      */
-    function processOperandFromInput(value) {
+    function processOperand(value) {
         // Определяем, с каким операндом работаем, с первым или вторым
         let operandIndex = (operands[1] === '' && operation === '') ? 0 : 1;
 
