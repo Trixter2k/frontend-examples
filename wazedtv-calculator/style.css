@@ -10,12 +10,12 @@ html, body, .main {
     align-items: center;
 }
 
-.calc,
+.calculator,
 .button {
     font-family: "Courier New";
 }
 
-.calc {
+.calculator {
     background-color: #fff;
     width: 600px;
     border: 1px solid black;
