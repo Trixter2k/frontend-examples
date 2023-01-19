@@ -222,24 +222,19 @@ let wazedTvCalculator = function() {
      */
     function display(output = '') {
         if (output === '') {
-            if (operands[0] !== '') {
-                output += operands[0];
-            }
-
-            if (operation !== '') {
-                output += operation;
-            }
-
-            if (operands[1] !== '') {
-                output += operands[1];
-            }
-        }
-
-        if (output === '') {
-            output = defaultOutput;
+            output = buildOutput();
         }
 
         resultEl.innerHTML = output;
+    }
+
+    /**
+     * Создаёт строчку вывода для панели результата в калькуляторе
+     *
+     * @returns {string|string}
+     */
+    function buildOutput() {
+        return operands[0] + operation + operands[1] || defaultOutput;
     }
 
     return init;
