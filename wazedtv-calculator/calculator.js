@@ -4,30 +4,30 @@
  * Переменной "wazedTvCalculator" присваивается функция для того, чтобы скрыть все её переменные и вложенные функции
  * из глобальной области видимости.
  */
-let wazedTvCalculator = function(elementId) {
+class WazedTVCalculator {
     /**
      * Элемент калькулятора
      * @type HTMLElement
      */
-    let calculatorEl;
+    calculatorEl;
 
     /**
      * Элемент "результата" для вывода
      * @type HTMLElement
      */
-    let resultEl;
+    resultEl;
 
     /**
      * Массив элементов кнопок
      * @type {HTMLElement[]}
      */
-    let buttonEls;
+    buttonEls;
 
     /**
      * Список операций
      * @type {string[]}
      */
-    let operations = ['÷', '×', '+', '-'];
+    operations = ['÷', '×', '+', '-'];
 
     /**
      * В массиве "operands" хранятся операнды.
@@ -37,25 +37,25 @@ let wazedTvCalculator = function(elementId) {
      *
      * @type {Object} operands
      */
-    let operands = ['', ''];
+    operands = ['', ''];
 
     /**
      * Хранит введённую команду. Командой являются все кнопки, кроме операций +, -, *, /
      * @type {string}
      */
-    let command = '';
+    command = '';
 
     /**
      * Хранит введённую операцию. Операцией являются +, -, *, /
      * @type {string}
      */
-    let operation = '';
+    operation = '';
 
     /**
      * Хранит строку для вывода по умолчанию, когда калькулятор ничего не отображает
      * @type {string}
      */
-    let defaultOutput = 'Результат';
+    defaultOutput = 'Результат';
 
     /**
      * Инициализирует переменные, хранящих ссылку на объекты html элементов и добавляет обработчик события
@@ -63,18 +63,20 @@ let wazedTvCalculator = function(elementId) {
      *
      * @param {String} elementId ID элемента калькулятора
      */
-    function init(elementId) {
+    constructor(elementId) {
         // Получение ссылок на объекты html-элементов
-        calculatorEl = document.getElementById(elementId);
-        resultEl = calculatorEl.getElementsByClassName('result')[0];
-        buttonEls = Array.from(calculatorEl.getElementsByClassName('button'));
+        this.calculatorEl = document.getElementById(elementId);
+        this.resultEl = this.calculatorEl.getElementsByClassName('result')[0];
+        this.buttonEls = Array.from(this.calculatorEl.getElementsByClassName('button'));
+
+        this.buttonClickHandler = this.buttonClickHandler.bind(this);
 
         // Назначаем каждой кнопке обработчик "buttonClickHandler()" на событие "click"
-        buttonEls.forEach((button) => {
-            button.addEventListener('click', buttonClickHandler);
+        this.buttonEls.forEach((button) => {
+            button.addEventListener('click', this.buttonClickHandler);
         });
 
-        display();
+        this.display();
     }
 
     /**
@@ -82,11 +84,11 @@ let wazedTvCalculator = function(elementId) {
      *
      * @param {Event} event Объект события
      */
-    function buttonClickHandler(event) {
+    buttonClickHandler(event) {
         let button = event.target; // получаем объект, вызваший событие, т.е. кнопку
         let value = button.innerText; // получаем значение кнопки
 
-        processInputValue(value); // обрабатываем ввод полученного значения
+        this.processInputValue(value); // обрабатываем ввод полученного значения
     }
 
     /**
@@ -94,7 +96,7 @@ let wazedTvCalculator = function(elementId) {
      *
      * @param {String} value
      */
-    function processInputValue(value) {
+    processInputValue(value) {
         if (value === '') return; // если значения ввода нет, то ничего не делаем
 
         if (isNaN(value) === true && value !== ',' && value !== '+/-') {
@@ -102,12 +104,12 @@ let wazedTvCalculator = function(elementId) {
              * Если "value" не число
              * И "value" не является набором запятом или сменой знака, то это команда
              */
-            processCommand(value);
+            this.processCommand(value);
         } else {
             /**
              * Если "value" не является операцией, значит производится набор операнда
              */
-            processOperand(value);
+            this.processOperand(value);
         }
     }
 
@@ -116,56 +118,56 @@ let wazedTvCalculator = function(elementId) {
      *
      * @param {String} value
      */
-    function processCommand(value) {
-        command = value;
+    processCommand(value) {
+        this.command = value;
 
-        if (command === 'C') {
+        if (this.command === 'C') {
             // Если нажали кнопку сброса "С"
-            reset();
-            display();
+            this.reset();
+            this.display();
             return;
         }
 
-        if (operands[0] === '' && operands[1] === '') {
+        if (this.operands[0] === '' && this.operands[1] === '') {
             // Если операндов нет, то ничего не делаем
             return;
         }
 
-        if (isOperation(command) && (operation === '' || operands[1] === '')) {
+        if (this.isOperation(this.command) && (this.operation === '' || this.operands[1] === '')) {
             // Если команда является оператором И
             // операция ещё не определена или второй операнд не существует,
             // то запоминаем операцию
-            operation = command;
+            this.operation = this.command;
         }
 
-        if ((isOperation(command) || command === '=') && operands[1] !== '') {
+        if ((this.isOperation(this.command) || this.command === '=') && this.operands[1] !== '') {
             // Если команда являеется операцией ИЛИ введена команда "="
             // И второй операнд существует, то делаем расчёты
             let result;
 
             try {
-                result = doOperation();
+                result = this.doOperation();
             } catch (exception) {
                 // Если в расчётах был выброшено исключение, то отображаем его в панели результатов
-                reset();
-                display(exception.message);
+                this.reset();
+                this.display(exception.message);
 
                 // И завершаем обработку команды
                 return;
             }
 
             // В случае успешного расчёта, назначаем результат первому операнду и очищаем второй операнд
-            operands[0] = result + '';
-            operands[1] = '';
+            this.operands[0] = result + '';
+            this.operands[1] = '';
 
-            if (command === '=') { // если введённая команда "="
-                operation = ''; // то очищаем операнд
-            } else if (isOperation(command)) { // если команда являлась операцией
-                operation = command; // то запоминаем её
+            if (this.command === '=') { // если введённая команда "="
+                this.operation = ''; // то очищаем операнд
+            } else if (this.isOperation(this.command)) { // если команда являлась операцией
+                this.operation = this.command; // то запоминаем её
             }
         }
 
-        display();
+        this.display();
     }
 
     /**
@@ -173,36 +175,36 @@ let wazedTvCalculator = function(elementId) {
      *
      * @param {String} value
      */
-    function processOperand(value) {
+    processOperand(value) {
         // Определяем, с каким операндом работаем, с первым или вторым
-        let operandIndex = (operands[1] === '' && operation === '') ? 0 : 1;
+        let operandIndex = (this.operands[1] === '' && this.operation === '') ? 0 : 1;
 
         if (isNaN(value) === false) { // если ввели обычное число
-            if (operands[operandIndex] === '0') { // если первая цифра в числе ноль
-                operands[operandIndex] = value; // то следующий ввод цифры заменит 0
+            if (this.operands[operandIndex] === '0') { // если первая цифра в числе ноль
+                this.operands[operandIndex] = value; // то следующий ввод цифры заменит 0
             } else {
-                operands[operandIndex] += value; // в ином случае присоединит цифру к числу
+                this.operands[operandIndex] += value; // в ином случае присоединит цифру к числу
             }
         } else if (value === ',') { // если ввоодим плавающую точку
-            if (operands[operandIndex].includes('.')) { // если плавающая точка вводится второй раз
+            if (this.operands[operandIndex].includes('.')) { // если плавающая точка вводится второй раз
                 return; // то ничего не делаем
             }
 
-            if (operandIndex === 1 && operands[operandIndex] === '') { // если второй операнд отсутствует
-                operands[operandIndex] = "0"; // то добавляем ноль в начало
+            if (operandIndex === 1 && this.operands[operandIndex] === '') { // если второй операнд отсутствует
+                this.operands[operandIndex] = "0"; // то добавляем ноль в начало
             }
 
-            operands[operandIndex] += '.';
+            this.operands[operandIndex] += '.';
         } else if (value === '+/-') { // если меняем знак числа
-            if (operands[operandIndex] === '' || operands[operandIndex] === '0') { // если операнд отсутствует или равен 0
+            if (this.operands[operandIndex] === '' || this.operands[operandIndex] === '0') { // если операнд отсутствует или равен 0
                 return; // то ничего не делаем
             }
 
             // Меняем знак
-            operands[operandIndex] = (parseFloat(operands[operandIndex]) * -1) + '';
+            this.operands[operandIndex] = (parseFloat(this.operands[operandIndex]) * -1) + '';
         }
 
-        display();
+        this.display();
     }
 
     /**
@@ -210,13 +212,13 @@ let wazedTvCalculator = function(elementId) {
      *
      * @return Number
      */
-    function doOperation() {
+    doOperation() {
         // Приводим строковые значения операндов к числам
-        let operand1 = parseFloat(operands[0]);
-        let operand2 = parseFloat(operands[1]);
+        let operand1 = parseFloat(this.operands[0]);
+        let operand2 = parseFloat(this.operands[1]);
         let result;
 
-        switch (operation) {
+        switch (this.operation) {
             case '÷': // деление
                 if (operand2 === 0) { // если делим на ноль
                     throw new Error('ЖОПА, ТЫ ЧЁ?'); // то выбрасываем исключение
@@ -244,17 +246,17 @@ let wazedTvCalculator = function(elementId) {
      * @param {String} operation
      * @returns {boolean}
      */
-    function isOperation(operation) {
-        return operations.includes(operation);
+    isOperation(operation) {
+        return this.operations.includes(operation);
     }
 
     /**
      * Сбрасывает калькулятор
      */
-    function reset() {
-        operands = ['', ''];
-        command = '';
-        operation = '';
+    reset() {
+        this.operands = ['', ''];
+        this.command = '';
+        this.operation = '';
     }
 
     /**
@@ -262,12 +264,12 @@ let wazedTvCalculator = function(elementId) {
      *
      * @param {String|Number} output
      */
-    function display(output = '') {
+    display(output = '') {
         if (output === '') {
-            output = buildOutput();
+            output = this.buildOutput();
         }
 
-        resultEl.innerHTML = output;
+        this.resultEl.innerHTML = output;
     }
 
     /**
@@ -275,11 +277,8 @@ let wazedTvCalculator = function(elementId) {
      *
      * @returns {string|string}
      */
-    function buildOutput() {
+    buildOutput() {
         // Если конкатенация операндов и операции даёт пустую строку, то возвращаем строку для вывода по умолчанию
-        return operands[0] + operation + operands[1] || defaultOutput;
+        return this.operands[0] + this.operation + this.operands[1] || this.defaultOutput;
     }
-
-    // Инициализируем калькулятор
-    init(elementId);
-};
+}
