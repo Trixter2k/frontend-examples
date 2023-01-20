@@ -58,6 +58,12 @@ class WazedTVCalculator {
     defaultOutput = 'Результат';
 
     /**
+     * Ограничение на количество цифр в выводе результата
+     * @type {number}
+     */
+    digitLimit = 16;
+
+    /**
      * Инициализирует переменные, хранящих ссылку на объекты html элементов и добавляет обработчик события
      * на кнопки калькулятора.
      *
@@ -236,6 +242,9 @@ class WazedTVCalculator {
                 result = operand1 - operand2;
                 break;
         }
+
+        // Ограничиваем число в 16 цифр
+        result = parseFloat(result.toPrecision(this.digitLimit));
 
         return result;
     }
