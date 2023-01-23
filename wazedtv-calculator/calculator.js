@@ -26,6 +26,13 @@ class WazedTVCalculator {
     operations = ['÷', '×', '+', '-'];
 
     /**
+     * Значение команды для удаления последней цифры в операнде
+     *
+     * @type {string}
+     */
+    removeCommand = '⇐';
+
+    /**
      * В массиве "operands" хранятся операнды.
      *
      * Под индексом "0" первый операнд.
@@ -101,7 +108,7 @@ class WazedTVCalculator {
     processInputValue(value) {
         if (value === '') return; // если значения ввода нет, то ничего не делаем
 
-        if (isNaN(value) === true && value !== ',' && value !== '+/-') {
+        if (isNaN(value) === true && value !== ',' && value !== '+/-' && value !== this.removeCommand) {
             /**
              * Если "value" не число
              * И "value" не является набором запятом или сменой знака, то это команда
@@ -204,6 +211,12 @@ class WazedTVCalculator {
 
             // Меняем знак
             this.operands[operandIndex] = (parseFloat(this.operands[operandIndex]) * -1) + '';
+        } else if (value === this.removeCommand) { // если удаляем последнюю цифру в операнде
+            if (this.operands[operandIndex] === '') { // если операнд отсутствует, то нечего удалять
+                return;
+            }
+
+            this.operands[operandIndex] = this.operands[operandIndex].slice(0,-1);
         }
 
         this.display();
