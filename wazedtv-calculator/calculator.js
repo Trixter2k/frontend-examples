@@ -26,11 +26,28 @@ class WazedTVCalculator {
     operations = ['÷', '×', '+', '-'];
 
     /**
+     * Значение команды для добавления плавающей точки в операнд
+     * @type {string}
+     */
+    floatCommand = ',';
+
+    /**
+     * Значение команды для управления знаком операнда
+     * @type {string}
+     */
+    signCommand = '+/-';
+
+    /**
      * Значение команды для удаления последней цифры в операнде
-     *
      * @type {string}
      */
     removeCommand = '⇐';
+
+    /**
+     * Список комманд, предназначенных для ввода операнда. Заполняется в конструкторе.
+     * @type {[]}
+     */
+    operandCommands = [];
 
     /**
      * В массиве "operands" хранятся операнды.
@@ -78,6 +95,12 @@ class WazedTVCalculator {
         this.resultEl = this.calculatorEl.getElementsByClassName('result')[0];
         this.buttonEls = Array.from(this.calculatorEl.getElementsByClassName('button'));
 
+        this.operandCommands = [
+            this.floatCommand,
+            this.signCommand,
+            this.removeCommand
+        ];
+
         this.buttonClickHandler = this.buttonClickHandler.bind(this);
 
         // Назначаем каждой кнопке обработчик "buttonClickHandler()" на событие "click"
@@ -108,10 +131,10 @@ class WazedTVCalculator {
     processInputValue(value) {
         if (value === '') return; // если значения ввода нет, то ничего не делаем
 
-        if (isNaN(value) === true && value !== ',' && value !== '+/-' && value !== this.removeCommand) {
+        if (isNaN(value) === true && this.operandCommands.includes(value) === false) {
             /**
              * Если "value" не число
-             * И "value" не является набором запятом или сменой знака, то это команда
+             * И "value" не является командой для набора операнда
              */
             this.processCommand(value);
         } else {
