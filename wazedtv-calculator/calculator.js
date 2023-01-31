@@ -84,6 +84,24 @@ class WazedTVCalculator {
     digitLimit = 16;
 
     /**
+     * Флаг, зажат ли ЛКМ
+     * @type {boolean}
+     */
+    isMouseDown = false;
+
+    /**
+     * Задержка при вводе следующей значения при зажатии ЛКМ или кнопки с цифрой
+     * @type {number}
+     */
+    inputDelay = 200;
+
+    /**
+     * Хранит IntervalID таймера, запускающего ввод следующего числа при зажатии ЛКМ или кнопки с цифрой
+     * @type {number}
+     */
+    inputDelayTimerId = 0;
+
+    /**
      * Инициализирует переменные, хранящих ссылку на объекты html элементов и добавляет обработчик события
      * на кнопки калькулятора.
      *
@@ -102,25 +120,80 @@ class WazedTVCalculator {
         ];
 
         this.buttonClickHandler = this.buttonClickHandler.bind(this);
+        this.buttonMouseDownHandler = this.buttonMouseDownHandler.bind(this);
+        this.documentMouseUpHandler = this.documentMouseUpHandler.bind(this);
 
         // Назначаем каждой кнопке обработчик "buttonClickHandler()" на событие "click"
         this.buttonEls.forEach((button) => {
             button.addEventListener('click', this.buttonClickHandler);
+            button.addEventListener('mousedown', this.buttonMouseDownHandler);
         });
+
+        document.addEventListener('mouseup', this.documentMouseUpHandler);
 
         this.display();
     }
 
     /**
-     * Обрабатывает событие клика по любой кнопке калькулятора
+     * Обрабатывает событие клика по любой кнопке калькулятора, кроме кнопок с цифрами
      *
      * @param {Event} event Объект события
      */
     buttonClickHandler(event) {
+        let inputValue = this.getInputValueFromMouseEvent(event);
+        if (isNaN(inputValue) === false) {
+            return;
+        }
+
+        this.processInputValue(this.getInputValueFromMouseEvent(event)); // обрабатываем ввод полученного значения
+    }
+
+    /**
+     * Обрабатывает событие зажатия ЛКМ мыши по кнопкам с цифрами
+     *
+     * @param {MouseEvent} event Объект события
+     */
+    buttonMouseDownHandler(event) {
+        let inputValue = this.getInputValueFromMouseEvent(event);
+        if (isNaN(inputValue) === true) {
+            return;
+        }
+
+        if (event.button !== 0 || this.inputDelayTimerId !== 0) {
+            return;
+        }
+
+        this.inputDelayTimerId = setInterval(() => {
+            this.isMouseDown = true;
+            this.processOperand(inputValue);
+        }, this.inputDelay);
+
+        this.processOperand(inputValue);
+    }
+
+    /**
+     * Обрабатывает событие отпускания ЛКМ мыши на любом месте страницы
+     *
+     * @param {MouseEvent} event Объект события
+     */
+    documentMouseUpHandler(event) {
+        if (this.inputDelayTimerId !== 0) {
+            clearInterval(this.inputDelayTimerId);
+        }
+
+        this.isMouseDown = false;
+        this.inputDelayTimerId = 0;
+    }
+
+    /**
+     * Получает значение кнопки при событии от мыши
+     *
+     * @param {MouseEvent} event
+     */
+    getInputValueFromMouseEvent(event) {
         let button = event.target; // получаем объект, вызваший событие, т.е. кнопку
         let value = button.innerText; // получаем значение кнопки
-
-        this.processInputValue(value); // обрабатываем ввод полученного значения
+        return value;
     }
 
     /**
@@ -131,7 +204,7 @@ class WazedTVCalculator {
     processInputValue(value) {
         if (value === '') return; // если значения ввода нет, то ничего не делаем
 
-        if (isNaN(value) === true && this.operandCommands.includes(value) === false) {
+        if (this.operandCommands.includes(value) === false) {
             /**
              * Если "value" не число
              * И "value" не является командой для набора операнда
