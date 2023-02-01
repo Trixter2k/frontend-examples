@@ -77,7 +77,7 @@ class WazedTVCalculator {
      * Список операций, заполняется в конструкторе. Операция является частным случаем команды.
      * @type {string[]}
      */
-    operations = [];
+    operators = [];
 
     /**
      * Список команд, предназначенных для ввода операнда. Заполняется в конструкторе.
@@ -102,7 +102,7 @@ class WazedTVCalculator {
      *
      * @type {Object}
      */
-    keyMapping = {};
+    keysToCommandsMapping = {};
 
     /**
      * В массиве "operands" хранятся операнды.
@@ -115,16 +115,16 @@ class WazedTVCalculator {
     operands = ['', ''];
 
     /**
-     * Хранит введённую команду. Командой являются все кнопки, кроме операций +, -, *, /
+     * Хранит введённую команду. Командой являются все кнопки, кроме операторов +, -, *, /
      * @type {string}
      */
     command = '';
 
     /**
-     * Хранит введённую операцию. Операцией являются +, -, *, /
+     * Хранит введённый оператор. Операторами являются +, -, *, /
      * @type {string}
      */
-    operation = '';
+    operator = '';
 
     /**
      * Хранит строку для вывода по умолчанию, когда калькулятор ничего не отображает
@@ -180,7 +180,7 @@ class WazedTVCalculator {
         this.resultEl = this.calculatorEl.getElementsByClassName('result')[0];
         this.buttonEls = Array.from(this.calculatorEl.getElementsByClassName('button'));
 
-        this.operations = [
+        this.operators = [
             this.additionCommand,
             this.subtractionCommand,
             this.multiplicationCommand,
@@ -193,7 +193,7 @@ class WazedTVCalculator {
             this.removeCommand
         ];
 
-        this.keyMapping = {
+        this.keysToCommandsMapping = {
             '+': this.additionCommand,
             '-': this.subtractionCommand,
             '*': this.multiplicationCommand,
@@ -233,9 +233,7 @@ class WazedTVCalculator {
      */
     buttonClickHandler(event) {
         let inputValue = this.getInputValueFromMouseEvent(event);
-        if (isNaN(inputValue) === false) {
-            return;
-        }
+        if (!isNaN(inputValue)) return;
 
         this.processInputValue(this.getInputValueFromMouseEvent(event)); // обрабатываем ввод полученного значения
     }
@@ -247,11 +245,9 @@ class WazedTVCalculator {
      */
     buttonMouseDownHandler(event) {
         let inputValue = this.getInputValueFromMouseEvent(event);
-        if (isNaN(inputValue) === true) { // если значение ввода не цифра, то ничего не делаем
-            return;
-        }
+        if (isNaN(inputValue)) return; // если значение ввода не цифра, то ничего не делаем
 
-        if (event.button !== 0 || this.inputDelayTimerId !== 0) { // если нажата не ЛКМ, то ничего не делаем
+        if (event.button !== 0 || this.inputDelayTimerId) { // если нажата не ЛКМ, то ничего не делаем
             return;
         }
 
@@ -260,9 +256,7 @@ class WazedTVCalculator {
             this.isMouseDown = true;
 
             // Создаём интервал для автоввода значений
-            this.inputDelayTimerId = setInterval(() => {
-                this.processOperand(inputValue);
-            }, this.inputDelay);
+            this.inputDelayTimerId = setInterval(() => this.processOperand(inputValue), this.inputDelay);
         }, this.mouseDownDelay);
 
         // Вводим первое значение по нажатию сразу, т.к. таймеры ещё не отработали
@@ -275,12 +269,12 @@ class WazedTVCalculator {
      * @param {MouseEvent} event Объект события
      */
     documentMouseUpHandler(event) {
-        if (this.mouseDownDelayTimerId !== 0) { // если существует таймер
+        if (this.mouseDownDelayTimerId) { // если существует таймер
             clearTimeout(this.mouseDownDelayTimerId); // удаляем его
             this.mouseDownDelayTimerId = 0; // и обнуляем его ID
         }
 
-        if (this.inputDelayTimerId !== 0) { // то же самое
+        if (this.inputDelayTimerId) { // то же самое
             clearInterval(this.inputDelayTimerId);
             this.inputDelayTimerId = 0;
         }
@@ -294,9 +288,7 @@ class WazedTVCalculator {
      * @param {MouseEvent} event
      */
     getInputValueFromMouseEvent(event) {
-        let button = event.target; // получаем объект, вызваший событие, т.е. кнопку
-        let value = button.innerText; // получаем значение кнопки
-        return value;
+        return event.target.innerText;
     }
 
     /**
@@ -304,13 +296,8 @@ class WazedTVCalculator {
      * @param {KeyboardEvent} event
      */
     keyDownHandler(event) {
-        let key = event.key;
-
-        if (Object.values(this.specialKeys).includes(key) === false) {
-            return;
-        }
-
-        this.processInputValue(this.keyMapping[key]);
+        if (!Object.values(this.specialKeys).includes(event.key)) return;
+        this.processInputValue(this.keysToCommandsMapping[event.key]);
     }
 
     /**
@@ -318,14 +305,11 @@ class WazedTVCalculator {
      * @param {KeyboardEvent} event
      */
     keyPressHandler(event) {
-        let key = event.key;
-        let isDigital = (isNaN(key) === false);
+        let isDigital = !isNaN(event.key);
 
-        if ((isDigital || (key in this.keyMapping)) === false) {
-            return;
-        }
+        if (!(isDigital || (event.key in this.keysToCommandsMapping))) return;
 
-        let inputValue = isDigital ? key : this.keyMapping[key];
+        let inputValue = isDigital ? event.key : this.keysToCommandsMapping[event.key];
 
         this.processInputValue(inputValue);
     }
@@ -336,9 +320,9 @@ class WazedTVCalculator {
      * @param {String} value
      */
     processInputValue(value) {
-        if (value === '') return; // если значения ввода нет, то ничего не делаем
+        if (!value) return; // если значения ввода нет, то ничего не делаем
 
-        if (isNaN(value) === true && this.operandCommands.includes(value) === false) {
+        if (isNaN(value) && !this.operandCommands.includes(value)) {
             /**
              * Если "value" не число
              * И "value" не является командой для набора операнда
@@ -372,14 +356,14 @@ class WazedTVCalculator {
             return;
         }
 
-        if (this.isOperation(this.command) && (this.operation === '' || this.operands[1] === '')) {
+        if (this.isOperator(this.command) && (this.operator === '' || this.operands[1] === '')) {
             // Если команда является оператором И
             // операция ещё не определена или второй операнд не существует,
             // то запоминаем операцию
-            this.operation = this.command;
+            this.operator = this.command;
         }
 
-        if ((this.isOperation(this.command) || this.command === this.equalsCommand) && this.operands[1] !== '') {
+        if ((this.isOperator(this.command) || this.command === this.equalsCommand) && this.operands[1] !== '') {
             // Если команда являеется операцией ИЛИ введена команда "="
             // И второй операнд существует, то делаем расчёты
             let result;
@@ -400,9 +384,9 @@ class WazedTVCalculator {
             this.operands[1] = '';
 
             if (this.command === this.equalsCommand) { // если введённая команда "="
-                this.operation = ''; // то очищаем операнд
-            } else if (this.isOperation(this.command)) { // если команда являлась операцией
-                this.operation = this.command; // то запоминаем её
+                this.operator = ''; // то очищаем операнд
+            } else if (this.isOperator(this.command)) { // если команда являлась операцией
+                this.operator = this.command; // то запоминаем её
             }
         }
 
@@ -416,7 +400,7 @@ class WazedTVCalculator {
      */
     processOperand(value) {
         // Определяем, с каким операндом работаем, с первым или вторым
-        let operandIndex = (this.operands[1] === '' && this.operation === '') ? 0 : 1;
+        let operandIndex = (this.operands[1] === '' && this.operator === '') ? 0 : 1;
 
         if (isNaN(value) === false) { // если ввели обычное число
             if (this.operands[operandIndex] === '0') { // если первая цифра в числе ноль
@@ -424,7 +408,7 @@ class WazedTVCalculator {
             } else {
                 this.operands[operandIndex] += value; // в ином случае присоединит цифру к числу
             }
-        } else if (value === ',') { // если ввоодим плавающую точку
+        } else if (value === this.floatCommand) { // если ввоодим плавающую точку
             if (this.operands[operandIndex].includes('.')) { // если плавающая точка вводится второй раз
                 return; // то ничего не делаем
             }
@@ -434,7 +418,7 @@ class WazedTVCalculator {
             }
 
             this.operands[operandIndex] += '.';
-        } else if (value === '+/-') { // если меняем знак числа
+        } else if (value === this.signCommand) { // если меняем знак числа
             if (this.operands[operandIndex] === '' || this.operands[operandIndex] === '0') { // если операнд отсутствует или равен 0
                 return; // то ничего не делаем
             }
@@ -463,7 +447,7 @@ class WazedTVCalculator {
         let operand2 = parseFloat(this.operands[1]);
         let result;
 
-        switch (this.operation) {
+        switch (this.operator) {
             case '÷': // деление
                 if (operand2 === 0) { // если делим на ноль
                     throw new Error('ЖОПА, ТЫ ЧЁ?'); // то выбрасываем исключение
@@ -491,11 +475,11 @@ class WazedTVCalculator {
     /**
      * Проверяет, является ли аргумент операцией
      *
-     * @param {String} operation
+     * @param {String} operator
      * @returns {boolean}
      */
-    isOperation(operation) {
-        return this.operations.includes(operation);
+    isOperator(operator) {
+        return this.operators.includes(operator);
     }
 
     /**
@@ -503,8 +487,7 @@ class WazedTVCalculator {
      */
     reset() {
         this.operands = ['', ''];
-        this.command = '';
-        this.operation = '';
+        this.command = this.operator = '';
     }
 
     /**
@@ -513,11 +496,7 @@ class WazedTVCalculator {
      * @param {String|Number} output
      */
     display(output = '') {
-        if (output === '') {
-            output = this.buildOutput();
-        }
-
-        this.resultEl.innerHTML = output;
+        this.resultEl.innerHTML = output || this.buildOutput();
     }
 
     /**
@@ -527,6 +506,6 @@ class WazedTVCalculator {
      */
     buildOutput() {
         // Если конкатенация операндов и операции даёт пустую строку, то возвращаем строку для вывода по умолчанию
-        return this.operands[0] + this.operation + this.operands[1] || this.defaultOutput;
+        return this.operands[0] + this.operator + this.operands[1] || this.defaultOutput;
     }
 }
