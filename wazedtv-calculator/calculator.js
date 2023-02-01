@@ -20,34 +20,89 @@ class WazedTVCalculator {
     buttonEls;
 
     /**
-     * Список операций
-     * @type {string[]}
+     * Хранит значение команды для операции сложения
+     * @type {string}
      */
-    operations = ['÷', '×', '+', '-'];
+    additionCommand = '+';
 
     /**
-     * Значение команды для добавления плавающей точки в операнд
+     * Хранит значение команды для операции вычитания
+     * @type {string}
+     */
+    subtractionCommand = '-';
+
+    /**
+     * Хранит значение команды для операции умножения
+     * @type {string}
+     */
+    multiplicationCommand = '×';
+
+    /**
+     * Хранит значение команды для операции деления
+     * @type {string}
+     */
+    divisionCommand = '÷';
+
+    /**
+     * Хранит значение команды для добавления плавающей точки в операнд
      * @type {string}
      */
     floatCommand = ',';
 
     /**
-     * Значение команды для управления знаком операнда
+     * Хранит значение команды для управления знаком операнда
      * @type {string}
      */
     signCommand = '+/-';
 
     /**
-     * Значение команды для удаления последней цифры в операнде
+     * Хранит значение команды для удаления последней цифры в операнде
      * @type {string}
      */
     removeCommand = '⇐';
 
     /**
-     * Список комманд, предназначенных для ввода операнда. Заполняется в конструкторе.
+     * Хранит значение команды для операции получения результата
+     * @type {string}
+     */
+    equalsCommand = '=';
+
+    /**
+     * Хранит значение команды для сброса калькулятора
+     * @type {string}
+     */
+    resetCommand = 'C';
+
+    /**
+     * Список операций, заполняется в конструкторе. Операция является частным случаем команды.
+     * @type {string[]}
+     */
+    operations = [];
+
+    /**
+     * Список команд, предназначенных для ввода операнда. Заполняется в конструкторе.
      * @type {[]}
      */
     operandCommands = [];
+
+    /**
+     * Хранит список значений "специальных" кнопок клавиатуры, которые отлавливаются только по событию "keydown"
+     * @type {{escapeKey: string, backspaceKey: string, deleteKey: string, enterKey: string}}
+     */
+    specialKeys = {
+        deleteKey: 'Delete',
+        escapeKey: 'Escape',
+        backspaceKey: 'Backspace',
+        enterKey: 'Enter'
+    }
+
+    /**
+     * Хранит соответствие значение с кнопок клавиатуры на команды калькулятора.
+     * Заполняется в конструкторе.
+     *
+     * @type {Object}
+     */
+    keyMapping = {};
 
     /**
      * В массиве "operands" хранятся операнды.
@@ -93,13 +148,25 @@ class WazedTVCalculator {
      * Задержка при вводе следующей значения при зажатии ЛКМ или кнопки с цифрой
      * @type {number}
      */
-    inputDelay = 200;
+    inputDelay = 25;
+
+    /**
+     * Задержка после первого зажатия ЛКМ, после которого происходит автоввод
+     * @type {number}
+     */
+    mouseDownDelay = 500;
 
     /**
      * Хранит IntervalID таймера, запускающего ввод следующего числа при зажатии ЛКМ или кнопки с цифрой
      * @type {number}
      */
     inputDelayTimerId = 0;
+
+    /**
+     * Хранит TimeoutID таймера, запускающего начало автоввода при зажатии кнопки ЛКМ'ом
+     * @type {number}
+     */
+    mouseDownDelayTimerId = 0;
 
     /**
      * Инициализирует переменные, хранящих ссылку на объекты html элементов и добавляет обработчик события
@@ -113,15 +180,38 @@ class WazedTVCalculator {
         this.resultEl = this.calculatorEl.getElementsByClassName('result')[0];
         this.buttonEls = Array.from(this.calculatorEl.getElementsByClassName('button'));
 
+        this.operations = [
+            this.additionCommand,
+            this.subtractionCommand,
+            this.multiplicationCommand,
+            this.divisionCommand
+        ];
+
         this.operandCommands = [
             this.floatCommand,
             this.signCommand,
             this.removeCommand
         ];
 
+        this.keyMapping = {
+            '+': this.additionCommand,
+            '-': this.subtractionCommand,
+            '*': this.multiplicationCommand,
+            '/': this.divisionCommand,
+            '.': this.floatCommand,
+            ',': this.floatCommand,
+            '=': this.equalsCommand,
+            [this.specialKeys.deleteKey]: this.resetCommand,
+            [this.specialKeys.escapeKey]: this.resetCommand,
+            [this.specialKeys.backspaceKey]: this.removeCommand,
+            [this.specialKeys.enterKey]: this.equalsCommand
+        };
+
         this.buttonClickHandler = this.buttonClickHandler.bind(this);
         this.buttonMouseDownHandler = this.buttonMouseDownHandler.bind(this);
         this.documentMouseUpHandler = this.documentMouseUpHandler.bind(this);
+        this.keyPressHandler = this.keyPressHandler.bind(this);
+        this.keyDownHandler = this.keyDownHandler.bind(this);
 
         // Назначаем каждой кнопке обработчик "buttonClickHandler()" на событие "click"
         this.buttonEls.forEach((button) => {
@@ -129,6 +219,8 @@ class WazedTVCalculator {
             button.addEventListener('mousedown', this.buttonMouseDownHandler);
         });
 
+        window.addEventListener('keypress', this.keyPressHandler);
+        window.addEventListener('keydown', this.keyDownHandler);
         document.addEventListener('mouseup', this.documentMouseUpHandler);
 
         this.display();
@@ -155,19 +247,25 @@ class WazedTVCalculator {
      */
     buttonMouseDownHandler(event) {
         let inputValue = this.getInputValueFromMouseEvent(event);
-        if (isNaN(inputValue) === true) {
+        if (isNaN(inputValue) === true) { // если значение ввода не цифра, то ничего не делаем
             return;
         }
 
-        if (event.button !== 0 || this.inputDelayTimerId !== 0) {
+        if (event.button !== 0 || this.inputDelayTimerId !== 0) { // если нажата не ЛКМ, то ничего не делаем
             return;
         }
 
-        this.inputDelayTimerId = setInterval(() => {
+        // Создаём задержку при нажатии ЛКМ, чтобы определить зажат ли он
+        this.mouseDownDelayTimerId = setTimeout(() => {
             this.isMouseDown = true;
-            this.processOperand(inputValue);
-        }, this.inputDelay);
 
+            // Создаём интервал для автоввода значений
+            this.inputDelayTimerId = setInterval(() => {
+                this.processOperand(inputValue);
+            }, this.inputDelay);
+        }, this.mouseDownDelay);
+
+        // Вводим первое значение по нажатию сразу, т.к. таймеры ещё не отработали
         this.processOperand(inputValue);
     }
 
@@ -177,12 +275,17 @@ class WazedTVCalculator {
      * @param {MouseEvent} event Объект события
      */
     documentMouseUpHandler(event) {
-        if (this.inputDelayTimerId !== 0) {
+        if (this.mouseDownDelayTimerId !== 0) { // если существует таймер
+            clearTimeout(this.mouseDownDelayTimerId); // удаляем его
+            this.mouseDownDelayTimerId = 0; // и обнуляем его ID
+        }
+
+        if (this.inputDelayTimerId !== 0) { // то же самое
             clearInterval(this.inputDelayTimerId);
+            this.inputDelayTimerId = 0;
         }
 
         this.isMouseDown = false;
-        this.inputDelayTimerId = 0;
     }
 
     /**
@@ -197,6 +300,37 @@ class WazedTVCalculator {
     }
 
     /**
+     * Обрабатывает нажатую кнопку с клавиатуры
+     * @param {KeyboardEvent} event
+     */
+    keyDownHandler(event) {
+        let key = event.key;
+
+        if (Object.values(this.specialKeys).includes(key) === false) {
+            return;
+        }
+
+        this.processInputValue(this.keyMapping[key]);
+    }
+
+    /**
+     * Обрабатывает ввод с клавиатуры
+     * @param {KeyboardEvent} event
+     */
+    keyPressHandler(event) {
+        let key = event.key;
+        let isDigital = (isNaN(key) === false);
+
+        if ((isDigital || (key in this.keyMapping)) === false) {
+            return;
+        }
+
+        let inputValue = isDigital ? key : this.keyMapping[key];
+
+        this.processInputValue(inputValue);
+    }
+
+    /**
      * Обрабатывает значение, полученное после нажатия любой кнопки калькулятора
      *
      * @param {String} value
@@ -204,7 +338,7 @@ class WazedTVCalculator {
     processInputValue(value) {
         if (value === '') return; // если значения ввода нет, то ничего не делаем
 
-        if (this.operandCommands.includes(value) === false) {
+        if (isNaN(value) === true && this.operandCommands.includes(value) === false) {
             /**
              * Если "value" не число
              * И "value" не является командой для набора операнда
@@ -226,8 +360,8 @@ class WazedTVCalculator {
     processCommand(value) {
         this.command = value;
 
-        if (this.command === 'C') {
-            // Если нажали кнопку сброса "С"
+        if (this.command === this.resetCommand) {
+            // Если нажали кнопку сброса
             this.reset();
             this.display();
             return;
@@ -245,7 +379,7 @@ class WazedTVCalculator {
             this.operation = this.command;
         }
 
-        if ((this.isOperation(this.command) || this.command === '=') && this.operands[1] !== '') {
+        if ((this.isOperation(this.command) || this.command === this.equalsCommand) && this.operands[1] !== '') {
             // Если команда являеется операцией ИЛИ введена команда "="
             // И второй операнд существует, то делаем расчёты
             let result;
@@ -265,7 +399,7 @@ class WazedTVCalculator {
             this.operands[0] = result + '';
             this.operands[1] = '';
 
-            if (this.command === '=') { // если введённая команда "="
+            if (this.command === this.equalsCommand) { // если введённая команда "="
                 this.operation = ''; // то очищаем операнд
             } else if (this.isOperation(this.command)) { // если команда являлась операцией
                 this.operation = this.command; // то запоминаем её
