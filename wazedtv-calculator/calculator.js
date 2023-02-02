@@ -8,16 +8,28 @@ class WazedTVCalculator {
     calculatorEl;
 
     /**
-     * Элемент "результата" для вывода
+     * Элемент для вывода "результата"
      * @type HTMLElement
      */
-    resultEl;
+    resultDisplayEl;
 
     /**
      * Массив элементов кнопок
      * @type {HTMLElement[]}
      */
     buttonEls;
+
+    /**
+     * CSS Class дисплея отображающего результат
+     * @type {string}
+     */
+    resultDisplayClass = 'result-display';
+
+    /**
+     * CSS Class кнопок
+     * @type {string}
+     */
+    buttonClass = 'button';
 
     /**
      * Хранит значение команды для операции сложения
@@ -71,7 +83,7 @@ class WazedTVCalculator {
      * Хранит значение команды для сброса калькулятора
      * @type {string}
      */
-    resetCommand = 'C';
+    resetCommand = 'c';
 
     /**
      * Список операций, заполняется в конструкторе. Операция является частным случаем команды.
@@ -130,7 +142,7 @@ class WazedTVCalculator {
      * Хранит строку для вывода по умолчанию, когда калькулятор ничего не отображает
      * @type {string}
      */
-    defaultOutput = 'Результат';
+    defaultInputValue = '0';
 
     /**
      * Ограничение на количество цифр в выводе результата
@@ -177,8 +189,8 @@ class WazedTVCalculator {
     constructor(elementId) {
         // Получение ссылок на объекты html-элементов
         this.calculatorEl = document.getElementById(elementId);
-        this.resultEl = this.calculatorEl.getElementsByClassName('result')[0];
-        this.buttonEls = Array.from(this.calculatorEl.getElementsByClassName('button'));
+        this.resultDisplayEl = this.calculatorEl.getElementsByClassName(this.resultDisplayClass)[0];
+        this.buttonEls = Array.from(this.calculatorEl.getElementsByClassName(this.buttonClass));
 
         this.operators = [
             this.additionCommand,
@@ -487,7 +499,8 @@ class WazedTVCalculator {
      */
     reset() {
         this.operands = ['', ''];
-        this.command = this.operator = '';
+        this.command = '';
+        this.operator = '';
     }
 
     /**
@@ -496,7 +509,7 @@ class WazedTVCalculator {
      * @param {String|Number} output
      */
     display(output = '') {
-        this.resultEl.innerHTML = output || this.buildOutput();
+        this.resultDisplayEl.innerHTML = output || this.buildOutput();
     }
 
     /**
@@ -506,6 +519,6 @@ class WazedTVCalculator {
      */
     buildOutput() {
         // Если конкатенация операндов и операции даёт пустую строку, то возвращаем строку для вывода по умолчанию
-        return this.operands[0] + this.operator + this.operands[1] || this.defaultOutput;
+        return this.operands[0] + this.operator + this.operands[1] || this.defaultInputValue;
     }
 }
