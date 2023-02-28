@@ -221,14 +221,18 @@ class WazedTVCalculator {
 
         this.buttonClickHandler = this.buttonClickHandler.bind(this);
         this.buttonMouseDownHandler = this.buttonMouseDownHandler.bind(this);
-        this.documentMouseUpHandler = this.documentMouseUpHandler.bind(this);
+        this.buttonMouseOverHandler = this.buttonMouseOverHandler.bind(this);
+        this.buttonMouseOutHandler = this.buttonMouseOutHandler.bind(this);
         this.keyPressHandler = this.keyPressHandler.bind(this);
         this.keyDownHandler = this.keyDownHandler.bind(this);
+        this.documentMouseUpHandler = this.documentMouseUpHandler.bind(this);
 
         // Назначаем каждой кнопке обработчик "buttonClickHandler()" на событие "click"
         this.buttonEls.forEach((button) => {
             button.addEventListener('click', this.buttonClickHandler);
             button.addEventListener('mousedown', this.buttonMouseDownHandler);
+            button.addEventListener('mouseover', this.buttonMouseOverHandler);
+            button.addEventListener('mouseout', this.buttonMouseOutHandler);
         });
 
         window.addEventListener('keypress', this.keyPressHandler);
@@ -304,12 +308,19 @@ class WazedTVCalculator {
     }
 
     /**
-     * Обрабатывает нажатую кнопку с клавиатуры
-     * @param {KeyboardEvent} event
+     * Обрабатывает наведение мышки на кнопку
+     * @param {MouseEvent} event
      */
-    keyDownHandler(event) {
-        if (!Object.values(this.specialKeys).includes(event.key)) return;
-        this.processInputValue(this.keysToCommandsMapping[event.key]);
+    buttonMouseOverHandler(event) {
+        console.log(event);
+    }
+
+    /**
+     * Обрабатывает уход мышки с кнопки
+     * @param {MouseEvent} event
+     */
+    buttonMouseOutHandler(event) {
+        console.log(event);
     }
 
     /**
@@ -324,6 +335,15 @@ class WazedTVCalculator {
         let inputValue = isDigital ? event.key : this.keysToCommandsMapping[event.key];
 
         this.processInputValue(inputValue);
+    }
+
+    /**
+     * Обрабатывает нажатую кнопку с клавиатуры
+     * @param {KeyboardEvent} event
+     */
+    keyDownHandler(event) {
+        if (!Object.values(this.specialKeys).includes(event.key)) return;
+        this.processInputValue(this.keysToCommandsMapping[event.key]);
     }
 
     /**

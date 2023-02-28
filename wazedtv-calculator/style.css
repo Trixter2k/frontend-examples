@@ -1,20 +1,33 @@
 :root {
-    --font-family-base: "Segoe UI";
-    --assets-font-family: 'Segoe MDL2 Assets';
+    --calc-font-family: "Segoe UI";
+    --calc-assets-font-family: 'Segoe MDL2 Assets';
+    --calc-text-color: #fff;
+    --calc-width: 420px;
 
+    --calc-grey-color: #323232;
+    --calc-grey-light-color: #3b3b3b;
+    --calc-grey-dark: #202020;
+    --calc-blue-color: #80d6ff;
+    --calc-blue-dark-color: #76c3e8;
+    --calc-blue-darker-color: #6cb1d2;
 
-    --calc-text-color-base: #fff;
-    --calc-background-color: #202020;
+    --calc-background-color: var(--calc-grey-dark);
     --calc-box-shadow: 0 0 20px 2px rgba(0, 0, 0, 0.7);
     --calc-border: 2px solid #616161;
 
     --calc-result-display-font-size: 48px;
 
-    --calc-button-background-color-base: #323232;
-    --calc-button-digit-background-color: #3b3b3b;
     --calc-button-font-size: 20px;
+    --calc-button-background-color: var(--calc-grey-color);
+    --calc-button-hover-background-color: var(--calc-grey-light-color);
+    --calc-button-active-background-color: var(--calc-grey-color);
+    --calc-number-set-area-background-color: var(--calc-grey-light-color);
+    --calc-number-set-area-hover-background-color: var(--calc-grey-color);
+    --calc-number-set-area-active-background-color: var(--calc-grey-dark);
+    --calc-button-equals-background-color: var(--calc-blue-color);
+    --calc-button-equals-hover-background-color: var(--calc-blue-dark-color);
+    --calc-button-equals-active-background-color: var(--calc-blue-darker-color);
 
-    --calc-width: 420px;
     --calc-buttons-gap: 2px;
 }
 
@@ -27,7 +40,7 @@
 body {
     height: 100vh;
     background-color: #999;
-    font-family: var(--font-family-base);
+    font-family: var(--calc-font-family);
 }
 
 .container {
@@ -38,7 +51,7 @@ body {
 
 .calculator {
     background-color: var(--calc-background-color);
-    color: var(--calc-text-color-base);
+    color: var(--calc-text-color);
     box-shadow: var(--calc-box-shadow);
     border-top: var(--calc-border);
     width: var(--calc-width);
@@ -73,19 +86,43 @@ body {
 .calculator .button {
     display: grid;
     padding: 7px 16px;
-    font-family: var(--font-family-base);
-    color: var(--calc-text-color-base);
+    font-family: var(--calc-font-family);
+    color: var(--calc-text-color);
     font-size: var(--calc-button-font-size);
-    background-color: var(--calc-button-background-color-base);
+    background-color: var(--calc-button-background-color);
     border: 0;
     border-radius: 5px;
 }
 
-.calculator .button[data-type="digit"] {
-    background-color: var(--calc-button-digit-background-color);
+.calculator .button:hover {
+    background-color: var(--calc-button-hover-background-color);
+}
+
+.calculator .button:active {
+    background-color: var(--calc-button-active-background-color);
+}
+
+.calculator .number-set-area {
+    background-color: var(--calc-number-set-area-background-color);
+}
+
+.calculator .number-set-area:hover {
+    background-color: var(--calc-number-set-area-hover-background-color);
+}
+
+.calculator .number-set-area:active {
+    background-color: var(--calc-number-set-area-active-background-color);
 }
 
 .calculator .button-equals {
-    background-color: #80d6ff;
-    color: var(--calc-background-color);
+    background-color: var(--calc-button-equals-background-color);
+    color: var(--calc-grey-dark);
+}
+
+.calculator .button-equals:hover {
+    background-color: var(--calc-button-equals-hover-background-color);
+}
+
+.calculator .button-equals:active {
+    background-color: var(--calc-button-equals-active-background-color);
 }
