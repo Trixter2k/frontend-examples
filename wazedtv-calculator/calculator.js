@@ -1,5 +1,8 @@
 "use strict";
 
+/**
+ * Калькулятор создан в качестве учебного материала для WazedTV (https://www.twitch.tv/wazed_tv)
+ */
 class WazedTVCalculator {
     /**
      * Элемент калькулятора
@@ -145,30 +148,17 @@ class WazedTVCalculator {
     operator = '';
 
     /**
-     * Хранит историю ввода команд. Под следующими индексами массива будут храниться:
-     * 0 - первый операнд
-     * 1 - оператор
-     * 2 - второй операнд
-     * 3 - знак равно
-     *
-     * @type {string[]}
-     */
-    commandHistory = ['', '', '', ''];
-
-    /**
      * Хранит строку для вывода по умолчанию для дисплея Результата, когда калькулятор ничего не отображает
      * @type {string}
      */
     defaultInputValue = '0';
 
     /**
-     * Хранит результат последней операции.
-     * Данное свойство так же является флагом конца операции, чтобы реализовать две операции:
-     * 1) Смена знака первого операнда после конца операции
-     * 2) Проведение повторной операции, где первым операндом выступает результат последней операции
-     * @type {number}
+     * Хранит флаг, свидетельствующий об окончании операции расчёта.
+     * Устанавливается в true сразу после успешного расчёта результата.
+     * Сбрасывается в false когда произошёл набор цифры для первого числа.
      */
-    result = NaN;
+    isOperationCompleted = false;
 
     /**
      * Хранит строку вывода по умолчанию для дисплея Выражения, когда калькулятор ничего не отображает
@@ -376,7 +366,7 @@ class WazedTVCalculator {
             this.processCommand(value);
         } else {
             /**
-             * Если "value" не является операцией, значит производится набор операнда
+             * Если "value" не является операцией, значит производится набор числа
              */
             this.processOperand(value);
         }
@@ -401,60 +391,46 @@ class WazedTVCalculator {
             return;
         }
 
-        if (this.isOperator(this.command) && (this.operator === '' || this.operands[1] === '')) {
-            // Если команда является оператором И
-            // операция ещё не определена или второй операнд не существует,
-            // то запоминаем операцию
-            this.operator = this.command;
+        if (this.isOperationCompleted && this.command === this.equalsCommand) {
+            return;
         }
 
-        if (this.isOperator(this.command)) {
-            this.commandHistory[1] = this.command;
-
-            if (!isNaN(this.result)) {
-                this.commandHistory[0] = this.operands[0];
-                this.commandHistory[2] = '';
-                this.commandHistory[3] = '';
-            }
-        } else if (this.command === this.equalsCommand) {
-            if (!isNaN(this.result)) {
-                this.operands[0] = this.result;
-                this.operands[1] = this.commandHistory[2];
-                this.operator = this.commandHistory[1];
-                this.commandHistory[0] = this.operands[0];
-            }
-
-            this.commandHistory[3] = this.command;
+        if (this.isOperator(this.command) && this.operator === '') {
+            // Если команда является оператором и операция ещё не определена или второй операнд не существует
+            this.operator = this.command; // то запоминаем операцию
         }
 
         if ((this.isOperator(this.command) || this.command === this.equalsCommand) && this.operands[1] !== '') {
             // Если команда является операцией ИЛИ введена команда "="
             // И второй операнд существует, то делаем расчёты
+            let result;
             try {
-                this.result = this.doOperation();
+                result = this.doOperation();
+                this.isOperationCompleted = true;
             } catch (exception) {
                 // Если в расчётах был выброшено исключение, то отображаем его в панели результатов
                 this.reset();
                 this.displayResult(exception.message);
-
-                // И завершаем обработку команды
-                return;
+                return; // И завершаем обработку команды
             }
 
-            this.displayResult(this.result);
+            this.displayResult(result);
+
+            if (this.command === this.equalsCommand) {
+                this.displayExpression();
+                this.operator = '';
+            }
 
             // В случае успешного расчёта, назначаем результат первому операнду и очищаем второй операнд
-            this.operands[0] = this.result + '';
+            this.operands[0] = result + '';
             this.operands[1] = '';
 
             if (this.isOperator(this.command)) {
-                this.commandHistory[0] = this.operands[0];
-                this.commandHistory[1] = this.command;
-                this.commandHistory[2] = this.operands[1];
-                this.commandHistory[3] = '';
-            } else if (this.command === this.equalsCommand) {
-                this.operator = '';
+                this.operator = this.command;
+                this.displayExpression();
             }
+
+            return;
         }
 
         this.displayExpression();
@@ -470,6 +446,10 @@ class WazedTVCalculator {
         let operandIndex = (this.operands[1] === '' && this.operator === '') ? 0 : 1;
 
         if (!isNaN(value)) { // если ввели обычную цифру
+            if (this.isOperationCompleted && operandIndex === 0 && this.operands[0] !== '') {
+                this.operands[0] = '';
+            }
+
             if (this.operands[operandIndex].replace(/[\.-]/, '').length >= this.digitLimit) {
                 return;
             }
@@ -498,19 +478,8 @@ class WazedTVCalculator {
                 this.operands[operandIndex] = this.operands[0];
             }
 
-            if (operandIndex === 0 && this.commandHistory[3] === this.equalsCommand) { // если введен только первый операнд и в истории есть команда "="
-                this.commandHistory[3] = '';
-            }
-
             // Меняем знак
             this.operands[operandIndex] = (parseFloat(this.operands[operandIndex]) * -1) + '';
-
-            // console.log(this.result);
-            if (!isNaN(this.result)) {
-                this.commandHistory[1] = '';
-                this.commandHistory[2] = '';
-                this.commandHistory[3] = '';
-            }
         } else if (value === this.removeCommand) { // если удаляем последнюю цифру в операнде
             if (this.operands[operandIndex] === '') { // если операнд отсутствует, то нечего удалять
                 return;
@@ -519,11 +488,8 @@ class WazedTVCalculator {
             this.operands[operandIndex] = this.operands[operandIndex].slice(0,-1);
         }
 
-        if (operandIndex === 0) {
-            this.commandHistory[0] = this.operands[operandIndex];
-            this.result = NaN;
-        } else if (operandIndex === 1) {
-            this.commandHistory[2] = this.operands[operandIndex];
+        if (this.isOperationCompleted) {
+            this.isOperationCompleted = false;
         }
 
         this.displayExpression();
@@ -585,11 +551,10 @@ class WazedTVCalculator {
      * Сбрасывает калькулятор
      */
     reset() {
-        this.commandHistory = ['', '', '', ''];
         this.operands = ['', ''];
         this.command = '';
         this.operator = '';
-        this.result = NaN;
+        this.isOperationCompleted = false;
 
         this.displayExpression();
         this.displayResult();
@@ -619,7 +584,9 @@ class WazedTVCalculator {
      * @returns {string|string}
      */
     buildExpressionOutput() {
-        // Если конкатенация операндов и операции даёт пустую строку, то возвращаем строку для вывода по умолчанию
-        return this.commandHistory.join('') || this.defaultExpressionOutput;
+        let output = this.operands[0] + this.operator + this.operands[1];
+        output += (this.command === this.equalsCommand && this.isOperationCompleted ? this.command : '');
+        output = output || this.defaultExpressionOutput;
+        return output;
     }
 }
