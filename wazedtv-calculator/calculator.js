@@ -20,6 +20,12 @@ class WazedTVCalculator {
     buttonEls;
 
     /**
+     * CSS Class дисплея отображающего выражение
+     * @type {string}
+     */
+    expressionDisplayClass = 'expression-display';
+
+    /**
      * CSS Class дисплея отображающего результат
      * @type {string}
      */
@@ -139,10 +145,36 @@ class WazedTVCalculator {
     operator = '';
 
     /**
-     * Хранит строку для вывода по умолчанию, когда калькулятор ничего не отображает
+     * Хранит историю ввода команд. Под следующими индексами массива будут храниться:
+     * 0 - первый операнд
+     * 1 - оператор
+     * 2 - второй операнд
+     * 3 - знак равно
+     *
+     * @type {string[]}
+     */
+    commandHistory = ['', '', '', ''];
+
+    /**
+     * Хранит строку для вывода по умолчанию для дисплея Результата, когда калькулятор ничего не отображает
      * @type {string}
      */
     defaultInputValue = '0';
+
+    /**
+     * Хранит результат последней операции.
+     * Данное свойство так же является флагом конца операции, чтобы реализовать две операции:
+     * 1) Смена знака первого операнда после конца операции
+     * 2) Проведение повторной операции, где первым операндом выступает результат последней операции
+     * @type {number}
+     */
+    result = NaN;
+
+    /**
+     * Хранит строку вывода по умолчанию для дисплея Выражения, когда калькулятор ничего не отображает
+     * @type {string}
+     */
+    defaultExpressionOutput = '&nbsp;';
 
     /**
      * Ограничение на количество цифр в выводе результата
@@ -189,6 +221,7 @@ class WazedTVCalculator {
     constructor(elementId) {
         // Получение ссылок на объекты html-элементов
         this.calculatorEl = document.getElementById(elementId);
+        this.expressionDisplayEl = this.calculatorEl.getElementsByClassName(this.expressionDisplayClass)[0];
         this.resultDisplayEl = this.calculatorEl.getElementsByClassName(this.resultDisplayClass)[0];
         this.buttonEls = Array.from(this.calculatorEl.getElementsByClassName(this.buttonClass));
 
@@ -221,8 +254,6 @@ class WazedTVCalculator {
 
         this.buttonClickHandler = this.buttonClickHandler.bind(this);
         this.buttonMouseDownHandler = this.buttonMouseDownHandler.bind(this);
-        this.buttonMouseOverHandler = this.buttonMouseOverHandler.bind(this);
-        this.buttonMouseOutHandler = this.buttonMouseOutHandler.bind(this);
         this.keyPressHandler = this.keyPressHandler.bind(this);
         this.keyDownHandler = this.keyDownHandler.bind(this);
         this.documentMouseUpHandler = this.documentMouseUpHandler.bind(this);
@@ -231,15 +262,14 @@ class WazedTVCalculator {
         this.buttonEls.forEach((button) => {
             button.addEventListener('click', this.buttonClickHandler);
             button.addEventListener('mousedown', this.buttonMouseDownHandler);
-            button.addEventListener('mouseover', this.buttonMouseOverHandler);
-            button.addEventListener('mouseout', this.buttonMouseOutHandler);
         });
 
         window.addEventListener('keypress', this.keyPressHandler);
         window.addEventListener('keydown', this.keyDownHandler);
         document.addEventListener('mouseup', this.documentMouseUpHandler);
 
-        this.display();
+        this.displayExpression();
+        this.displayResult();
     }
 
     /**
@@ -308,22 +338,6 @@ class WazedTVCalculator {
     }
 
     /**
-     * Обрабатывает наведение мышки на кнопку
-     * @param {MouseEvent} event
-     */
-    buttonMouseOverHandler(event) {
-        console.log(event);
-    }
-
-    /**
-     * Обрабатывает уход мышки с кнопки
-     * @param {MouseEvent} event
-     */
-    buttonMouseOutHandler(event) {
-        console.log(event);
-    }
-
-    /**
      * Обрабатывает ввод с клавиатуры
      * @param {KeyboardEvent} event
      */
@@ -379,7 +393,6 @@ class WazedTVCalculator {
         if (this.command === this.resetCommand) {
             // Если нажали кнопку сброса
             this.reset();
-            this.display();
             return;
         }
 
@@ -395,34 +408,56 @@ class WazedTVCalculator {
             this.operator = this.command;
         }
 
-        if ((this.isOperator(this.command) || this.command === this.equalsCommand) && this.operands[1] !== '') {
-            // Если команда являеется операцией ИЛИ введена команда "="
-            // И второй операнд существует, то делаем расчёты
-            let result;
+        if (this.isOperator(this.command)) {
+            this.commandHistory[1] = this.command;
 
+            if (!isNaN(this.result)) {
+                this.commandHistory[0] = this.operands[0];
+                this.commandHistory[2] = '';
+                this.commandHistory[3] = '';
+            }
+        } else if (this.command === this.equalsCommand) {
+            if (!isNaN(this.result)) {
+                this.operands[0] = this.result;
+                this.operands[1] = this.commandHistory[2];
+                this.operator = this.commandHistory[1];
+                this.commandHistory[0] = this.operands[0];
+            }
+
+            this.commandHistory[3] = this.command;
+        }
+
+        if ((this.isOperator(this.command) || this.command === this.equalsCommand) && this.operands[1] !== '') {
+            // Если команда является операцией ИЛИ введена команда "="
+            // И второй операнд существует, то делаем расчёты
             try {
-                result = this.doOperation();
+                this.result = this.doOperation();
             } catch (exception) {
                 // Если в расчётах был выброшено исключение, то отображаем его в панели результатов
                 this.reset();
-                this.display(exception.message);
+                this.displayResult(exception.message);
 
                 // И завершаем обработку команды
                 return;
             }
 
+            this.displayResult(this.result);
+
             // В случае успешного расчёта, назначаем результат первому операнду и очищаем второй операнд
-            this.operands[0] = result + '';
+            this.operands[0] = this.result + '';
             this.operands[1] = '';
 
-            if (this.command === this.equalsCommand) { // если введённая команда "="
-                this.operator = ''; // то очищаем операнд
-            } else if (this.isOperator(this.command)) { // если команда являлась операцией
-                this.operator = this.command; // то запоминаем её
+            if (this.isOperator(this.command)) {
+                this.commandHistory[0] = this.operands[0];
+                this.commandHistory[1] = this.command;
+                this.commandHistory[2] = this.operands[1];
+                this.commandHistory[3] = '';
+            } else if (this.command === this.equalsCommand) {
+                this.operator = '';
             }
         }
 
-        this.display();
+        this.displayExpression();
     }
 
     /**
@@ -434,7 +469,11 @@ class WazedTVCalculator {
         // Определяем, с каким операндом работаем, с первым или вторым
         let operandIndex = (this.operands[1] === '' && this.operator === '') ? 0 : 1;
 
-        if (isNaN(value) === false) { // если ввели обычное число
+        if (!isNaN(value)) { // если ввели обычную цифру
+            if (this.operands[operandIndex].replace(/[\.-]/, '').length >= this.digitLimit) {
+                return;
+            }
+
             if (this.operands[operandIndex] === '0') { // если первая цифра в числе ноль
                 this.operands[operandIndex] = value; // то следующий ввод цифры заменит 0
             } else {
@@ -451,12 +490,27 @@ class WazedTVCalculator {
 
             this.operands[operandIndex] += '.';
         } else if (value === this.signCommand) { // если меняем знак числа
-            if (this.operands[operandIndex] === '' || this.operands[operandIndex] === '0') { // если операнд отсутствует или равен 0
+            if (operandIndex === 0 && (this.operands[operandIndex] === '' || this.operands[operandIndex] === '0')) { // если операнд отсутствует или равен 0
                 return; // то ничего не делаем
+            }
+
+            if (operandIndex === 1 && this.operands[operandIndex] === '') { // если вводится второй операнд, но его не существует
+                this.operands[operandIndex] = this.operands[0];
+            }
+
+            if (operandIndex === 0 && this.commandHistory[3] === this.equalsCommand) { // если введен только первый операнд и в истории есть команда "="
+                this.commandHistory[3] = '';
             }
 
             // Меняем знак
             this.operands[operandIndex] = (parseFloat(this.operands[operandIndex]) * -1) + '';
+
+            // console.log(this.result);
+            if (!isNaN(this.result)) {
+                this.commandHistory[1] = '';
+                this.commandHistory[2] = '';
+                this.commandHistory[3] = '';
+            }
         } else if (value === this.removeCommand) { // если удаляем последнюю цифру в операнде
             if (this.operands[operandIndex] === '') { // если операнд отсутствует, то нечего удалять
                 return;
@@ -465,7 +519,15 @@ class WazedTVCalculator {
             this.operands[operandIndex] = this.operands[operandIndex].slice(0,-1);
         }
 
-        this.display();
+        if (operandIndex === 0) {
+            this.commandHistory[0] = this.operands[operandIndex];
+            this.result = NaN;
+        } else if (operandIndex === 1) {
+            this.commandHistory[2] = this.operands[operandIndex];
+        }
+
+        this.displayExpression();
+        this.displayResult(this.operands[operandIndex]);
     }
 
     /**
@@ -499,7 +561,12 @@ class WazedTVCalculator {
         }
 
         // Ограничиваем число в 16 цифр
-        result = parseFloat(result.toPrecision(this.digitLimit));
+        let isFloatWithZeroStart = (result % 1 !== 0 && Math.trunc(result) === 0);
+        if (isFloatWithZeroStart === true) {
+            result = result.toFixed(this.digitLimit - 1);
+        } else {
+            result = parseFloat(result.toPrecision(this.digitLimit));
+        }
 
         return result;
     }
@@ -518,18 +585,32 @@ class WazedTVCalculator {
      * Сбрасывает калькулятор
      */
     reset() {
+        this.commandHistory = ['', '', '', ''];
         this.operands = ['', ''];
         this.command = '';
         this.operator = '';
+        this.result = NaN;
+
+        this.displayExpression();
+        this.displayResult();
     }
 
     /**
-     * Выводит строку в панель результата калькулятора
+     * Выводит выражение в элемент ".expression-display" калькулятора
      *
-     * @param {String|Number} output
+     * @param {String} expression
      */
-    display(output = '') {
-        this.resultDisplayEl.innerHTML = output || this.buildOutput();
+    displayExpression(expression = '') {
+        this.expressionDisplayEl.innerHTML = expression || this.buildExpressionOutput();
+    }
+
+    /**
+     * Выводит набираемое число или результат вычислений в элемент ".result-display" калькулятора
+     *
+     * @param {String|Number} result
+     */
+    displayResult(result = '') {
+        this.resultDisplayEl.innerHTML = result || this.defaultInputValue;
     }
 
     /**
@@ -537,8 +618,8 @@ class WazedTVCalculator {
      *
      * @returns {string|string}
      */
-    buildOutput() {
+    buildExpressionOutput() {
         // Если конкатенация операндов и операции даёт пустую строку, то возвращаем строку для вывода по умолчанию
-        return this.operands[0] + this.operator + this.operands[1] || this.defaultInputValue;
+        return this.commandHistory.join('') || this.defaultExpressionOutput;
     }
 }

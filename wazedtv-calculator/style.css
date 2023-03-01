@@ -2,10 +2,11 @@
     --calc-font-family: "Segoe UI";
     --calc-assets-font-family: 'Segoe MDL2 Assets';
     --calc-text-color: #fff;
-    --calc-width: 420px;
+    --calc-width: 500px;
 
     --calc-grey-color: #323232;
     --calc-grey-light-color: #3b3b3b;
+    --calc-grey-lighter-color: #9c9c9c;
     --calc-grey-dark: #202020;
     --calc-blue-color: #80d6ff;
     --calc-blue-dark-color: #76c3e8;
@@ -15,7 +16,10 @@
     --calc-box-shadow: 0 0 20px 2px rgba(0, 0, 0, 0.7);
     --calc-border: 2px solid #616161;
 
+    --calc-expression-display-font-size: 15px;
+    --calc-expression-display-text-color: var(--calc-grey-lighter-color);
     --calc-result-display-font-size: 48px;
+
 
     --calc-button-font-size: 20px;
     --calc-button-background-color: var(--calc-grey-color);
@@ -66,11 +70,24 @@ body {
     display: flex;
     align-items: center;
     justify-content: center;
+    flex-direction: column;
+}
+
+.calculator .expression-display {
+    width: 100%;
+    font-size: var(--calc-expression-display-font-size);
+    line-height: var(--calc-expression-display-font-size);
+    color: var(--calc-expression-display-text-color);
+    text-align: right;
+    padding-right: 10px;
+    margin-bottom: 4px;
 }
 
 .calculator .result-display {
     width: 100%;
     font-size: var(--calc-result-display-font-size);
+    line-height: var(--calc-result-display-font-size);
+    font-size-adjust: 0.5;
     font-weight: 600;
     text-align: right;
     padding-right: 10px;
@@ -85,7 +102,7 @@ body {
 
 .calculator .button {
     display: grid;
-    padding: 7px 16px;
+    padding: 12px 20px;
     font-family: var(--calc-font-family);
     color: var(--calc-text-color);
     font-size: var(--calc-button-font-size);
